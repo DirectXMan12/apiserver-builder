@@ -23,6 +23,11 @@ import (
 	"sigs.k8s.io/apiserver-runtime/pkg/apiserver"
 	genericoptions "k8s.io/apiserver/pkg/server/options"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apiserver/pkg/storage/storagebackend"
+)
+
+const (
+	DefaultEtcdPathPrefix = "/registry"
 )
 
 type BaseAPIServerOptions struct {
@@ -31,6 +36,7 @@ type BaseAPIServerOptions struct {
 	Authentication *genericoptions.DelegatingAuthenticationOptions
 	Authorization  *genericoptions.DelegatingAuthorizationOptions
 	Features       *genericoptions.FeatureOptions
+	Etcd           *genericoptions.EtcdOptions
 }
 
 func NewBaseAPIServerOptions() *BaseAPIServerOptions {
@@ -44,7 +50,11 @@ func NewBaseAPIServerOptions() *BaseAPIServerOptions {
 		Authentication: genericoptions.NewDelegatingAuthenticationOptions(),
 		Authorization:  genericoptions.NewDelegatingAuthorizationOptions(),
 		Features:       genericoptions.NewFeatureOptions(),
+		Etcd:           genericoptions.NewEtcdOptions(storagebackend.NewDefaultConfig(DefaultEtcdPathPrefix, nil)),
 	}
+
+	o.Authorization.RemoteKubeConfigFileOptional = true
+	o.Authentication.RemoteKubeConfigFileOptional = true
 
 	return o
 }
@@ -55,6 +65,7 @@ func (o BaseAPIServerOptions) Validate(args []string) error {
 	errs = append(errs, o.Authentication.Validate()...)
 	errs = append(errs, o.Authorization.Validate()...)
 	errs = append(errs, o.Features.Validate()...)
+	errs = append(errs, o.Etcd.Validate()...)
 
 	return utilerrors.NewAggregate(errs)
 }
@@ -78,6 +89,10 @@ func (o BaseAPIServerOptions) ApplyTo(cfg *apiserver.Config) error {
 		return err
 	}
 	if err := o.Authorization.ApplyTo(&serverConfig.Authorization); err != nil {
+		return err
+	}
+
+	if err := o.Etcd.ApplyTo(serverConfig); err != nil {
 		return err
 	}
 

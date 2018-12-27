@@ -24,11 +24,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/version"
+	openapinamer "k8s.io/apiserver/pkg/endpoints/openapi"
 	"k8s.io/apiserver/pkg/registry/rest"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	openapicommon "k8s.io/kube-openapi/pkg/common"
-	openapinamer "k8s.io/apiserver/pkg/endpoints/openapi"
 )
+
+type SchemeInstallFunc func(*runtime.Scheme)
 
 func NewScheme(installer func(*runtime.Scheme)) *runtime.Scheme {
 	scheme := runtime.NewScheme()
@@ -83,7 +85,7 @@ type Config struct {
 // if not already done.  It's idempotent.
 func (cfg *Config) GenericConfig() *genericapiserver.Config {
 	if cfg.genericConfig == nil {
-		cfg.genericConfig = genericapiserver.NewConfig(/* cheat a bit -- this just fills in Serializer, which we do later in complete */ serializer.CodecFactory{})
+		cfg.genericConfig = genericapiserver.NewConfig( /* cheat a bit -- this just fills in Serializer, which we do later in complete */ serializer.CodecFactory{})
 	}
 	return cfg.genericConfig
 }
@@ -95,7 +97,7 @@ type BaseAPIServer struct {
 
 type completedConfig struct {
 	GenericConfig genericapiserver.CompletedConfig
-	BaseConfig Config
+	BaseConfig    Config
 	// Codecs is the codec factory constructed from the passed-in scheme
 	Codecs serializer.CodecFactory
 	// ParameterCodec is the parameter codec used to decode parameters passed to the API.
@@ -131,7 +133,7 @@ func (cfg *Config) Complete() CompletedConfig {
 
 	c := completedConfig{
 		GenericConfig: cfg.genericConfig.Complete(nil /* TODO(directxman12): plumb through informers when we need theme */),
-		BaseConfig: *cfg,
+		BaseConfig:    *cfg,
 	}
 
 	c.Codecs = codecs

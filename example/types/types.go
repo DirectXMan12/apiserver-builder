@@ -4,6 +4,11 @@ package types
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apiserver/pkg/storage/names"
+	"context"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 // DemoSpec defines the desired state of Demo
@@ -33,5 +38,34 @@ type Demo struct {
 type DemoList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Demo `json:"items"`
+	Items []Demo    `json:"items"`
 }
+
+var _ rest.RESTCreateStrategy = DemoStrategy{}
+var _ rest.RESTUpdateStrategy = DemoStrategy{}
+var _ rest.RESTDeleteStrategy = DemoStrategy{}
+
+type DemoStrategy struct {
+	runtime.ObjectTyper
+	names.NameGenerator
+}
+
+func (DemoStrategy) NamespaceScoped() bool {
+	return true
+}
+
+// Create Strategies
+func (DemoStrategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {}
+
+func (DemoStrategy) Validate(ctx context.Context, obj runtime.Object) field.ErrorList { return nil }
+
+func (DemoStrategy) Canonicalize(obj runtime.Object) {}
+
+// Update Strategies
+func (DemoStrategy) AllowCreateOnUpdate() bool { return true }
+
+func (DemoStrategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Object) {}
+
+func (DemoStrategy) ValidateUpdate(ctx context.Context, obj, old runtime.Object) field.ErrorList { return nil }
+
+func (DemoStrategy) AllowUnconditionalUpdate() bool { return true }
