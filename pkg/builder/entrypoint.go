@@ -17,21 +17,20 @@ limitations under the License.
 package builder
 
 import (
+	"flag"
 	"fmt"
 	"sync"
-	"flag"
 
 	"github.com/spf13/pflag"
 
 	// NB(directxman12): this package runs stuff on init, polluting the global flagset :-/.
 	// there's a fix on the way, but for the mean time, we just have to deal with it, because
 	// the main k8s.io/apiserver repo imports it anyway.
-	"k8s.io/apiserver/pkg/util/logs"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/registry/rest"
 	genericapiserver "k8s.io/apiserver/pkg/server"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apiserver/pkg/util/logs"
 	"k8s.io/klog"
 
 	"sigs.k8s.io/apiserver-runtime/pkg/apiserver"
@@ -130,7 +129,7 @@ func (b *APIServerBase) WithStorage(gvr schema.GroupVersionResource, storage res
 
 	b.storage[gvr] = apiserver.StorageInfo{
 		Resource: gvr,
-		Storage: storage,
+		Storage:  storage,
 	}
 
 	return nil
@@ -138,9 +137,8 @@ func (b *APIServerBase) WithStorage(gvr schema.GroupVersionResource, storage res
 
 // WithScheme sets the scheme for this API server, adding in extra boilerplate
 // objects for API serving (like options).
-func (b *APIServerBase) WithScheme(scheme *runtime.Scheme) {
-	metav1.AddToGroupVersion(scheme, schema.GroupVersion{Version: "v1"})
-	b.scheme = scheme
+func (b *APIServerBase) WithScheme(builders runtime.SchemeBuilder) {
+	b.scheme = apiserver.NewScheme(builders)
 }
 
 // Config fetches the configuration used to ulitmately create the custom metrics adapter's

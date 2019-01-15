@@ -4,24 +4,16 @@ import (
 	"context"
 	"os"
 
-	"sigs.k8s.io/apiserver-runtime/pkg/builder"
-	"sigs.k8s.io/apiserver-runtime/example/types"
-	"k8s.io/klog"
-	"k8s.io/apimachinery/pkg/runtime"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/klog"
+	"sigs.k8s.io/apiserver-runtime/example/types"
+	"sigs.k8s.io/apiserver-runtime/pkg/builder"
 
 	// pull in auth plugins
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
-
-var (
-	scheme = runtime.NewScheme()
-)
-
-func init() {
-	scheme.AddKnownTypes(types.GroupVersion, &types.Demo{}, &types.DemoList{})
-}
 
 type TestGetter struct {
 }
@@ -31,7 +23,6 @@ func (t *TestGetter) Get(ctx context.Context, name string, options *metav1.GetOp
 	namespace, _ := genericapirequest.NamespaceFrom(ctx)
 	obj.Name = "some-demo-object"
 	obj.Namespace = namespace
-	
 	return obj, nil
 }
 
@@ -45,7 +36,12 @@ func (t *TestGetter) NamespaceScoped() bool {
 
 func main() {
 	b := &builder.APIServerBase{}
-	b.WithScheme(scheme)
+	b.WithScheme([]func(*runtime.Scheme) error{
+		func(scheme *runtime.Scheme) error {
+			scheme.AddKnownTypes(types.GroupVersion, &types.Demo{}, &types.DemoList{})
+			return nil
+		},
+	})
 	b.WithStorage(types.GroupVersion.WithResource("demos"), &TestGetter{})
 	b.Flags().Parse(os.Args)
 
